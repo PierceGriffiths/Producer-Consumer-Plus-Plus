@@ -1,0 +1,7 @@
+gmon.out
+producer-event.log
+consumer-event.log
+pc-plus-plus
+pc-plus-plus-debug
+src/obj/
+src/obj/debug/
