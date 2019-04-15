@@ -17,7 +17,10 @@ pcplusplus::thread_args* checkArguments(const char *argv[], size_t *target, size
 	errno = 0;
 	argCheck = std::strtoumax(argv[i], NULL, 10);
 	if(errno == ERANGE || argCheck == 0){
-            goto invalidargv;
+invalidargv:
+	    std::cerr << "argument " << i << " (\'" << argv[i] << "\') not valid. Please provide a positive integer no greater than " << SIZE_MAX << std::endl;
+	    std::cerr << "Usage: " << argv[0] << " <# producer threads> <# consumer threads> <buffer size> <# items to produce>" << std::endl;
+	    break;
         }
         switch(i){
             case 1:
@@ -44,9 +47,6 @@ pcplusplus::thread_args* checkArguments(const char *argv[], size_t *target, size
 		return tArgs;
         }
     }
-invalidargv:
-    std::cerr << "argument " << i << " (\'" << argv[i] << "\') not valid. Please provide a positive integer no greater than " << SIZE_MAX << std::endl;
-    std::cerr << "Usage: " << argv[0] << " <# producer threads> <# consumer threads> <buffer size> <# items to produce>" << std::endl;
     return nullptr;
 }
 
@@ -82,26 +82,23 @@ int main(const int argc, const char *argv[]){
     
     tArgs->openLogFiles();
     
-    size_t num_produced = 0, num_consumed = 0;
-    srand48(std::time(nullptr));
-    std::unique_lock<std::mutex> mtx = tArgs->getMutex();
     if(numProducers >= numConsumers){
 	size_t i = 0;
 	for(; i < numConsumers; ++i){
 	    try{
-		producers[i] = std::thread(pcplusplus::producer, tArgs, target, &num_produced);
+		producers[i] = std::thread(pcplusplus::producer, tArgs, target);
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Failed to fork a producer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
 	    
 	    try{
-		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target, &num_consumed);
+		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target);
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Failed to fork a consumer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
@@ -109,23 +106,21 @@ int main(const int argc, const char *argv[]){
 	
 	for(;i < numProducers; ++i){//if numProducers == numConsumers, this loop will be skipped
 	    try{
-		producers[i] = std::thread(pcplusplus::producer, tArgs, target, &num_produced);
+		producers[i] = std::thread(pcplusplus::producer, tArgs, target);
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Failed to fork a producer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
 	}
-	
-	mtx.unlock();
 	
 	for(i = 0; i < numConsumers; ++i){
 	    try{
 		producers[i].join();
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Error occured while attempting to join a producer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
@@ -134,7 +129,7 @@ int main(const int argc, const char *argv[]){
 		consumers[i].join();
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Error occured while attempting to join a consumer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
@@ -145,6 +140,7 @@ int main(const int argc, const char *argv[]){
 		producers[i].join();
 	    }
 	    catch(const std::system_error& e){
+		tArgs->lock();
 		std::cerr << "Error occured while attempting to join a producer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
@@ -156,18 +152,19 @@ int main(const int argc, const char *argv[]){
 	size_t i = 0;
 	for(; i < numProducers; ++i){
 	    try{
-		producers[i] = std::thread(pcplusplus::producer, tArgs, target, &num_produced);
+		producers[i] = std::thread(pcplusplus::producer, tArgs, target);
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Failed to fork a producer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
 
 	    try{
-		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target, &num_consumed);
+		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target);
 	    }
 	    catch(const std::system_error& e){
+		tArgs->lock();
 		std::cerr << "Failed to fork a consumer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
@@ -175,23 +172,21 @@ int main(const int argc, const char *argv[]){
 	
 	for(;i < numConsumers; ++i){
 	    try{
-		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target, &num_consumed);
+		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target);
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Failed to fork a consumer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
 	}
-	
-	mtx.unlock();
 	
 	for(i = 0; i < numProducers; ++i){
 	    try{
 		producers[i].join();
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Error occured while attempting to join a producer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
@@ -200,6 +195,7 @@ int main(const int argc, const char *argv[]){
 		consumers[i].join();
 	    }
 	    catch(const std::system_error& e){
+		tArgs->lock();
 		std::cerr << "Error occured while attempting to join a consumer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
@@ -212,7 +208,7 @@ int main(const int argc, const char *argv[]){
 		consumers[i].join();
 	    }
 	    catch(const std::system_error& e){
-		mtx.lock();
+		tArgs->lock();
 		std::cerr << "Error occured while attempting to join a consumer thread." << std::endl;
 		return EXIT_FAILURE;
 	    }
@@ -220,42 +216,56 @@ int main(const int argc, const char *argv[]){
 	consumers.reset();
     }//end of else
     
-    mtx.~unique_lock();
-    bool pLogged = tArgs->producerLog.is_open(), cLogged = tArgs->consumerLog.is_open();
+    const bool pLogged = tArgs->producerLog_is_open(), cLogged = tArgs->consumerLog_is_open();
+    const size_t num_produced = tArgs->getNumProduced(), num_consumed = tArgs->getNumConsumed();
     delete tArgs;
-    std::cout << "Number of items produced: " << num_produced << std::endl << "Number of items consumed: " << num_consumed << std::endl;
+    std::cout << "All threads finished." << std::endl;
+    std::cout << "Produced: " << num_produced << std::endl << "Consumed: " << num_consumed << std::endl << std::endl;
     
     if(pLogged){
 	std::ifstream producerLog;
 	producerLog.exceptions(std::ifstream::failbit);
-	std::cout << "Beginning of " PRODUCER_LOG_FILENAME << std::endl;
+	std::string buff;
 	try{
-	    std::string buff;
 	    producerLog.open(PRODUCER_LOG_FILENAME);
+	    std::cout << "Reading from " PRODUCER_LOG_FILENAME ":" << std::endl;
 	    while(std::getline(producerLog, buff))
 		std::cout << buff << std::endl;
 	}
 	catch(const std::ifstream::failure& e){
-	    std::cout << "End of " PRODUCER_LOG_FILENAME << std::endl;
+	    if(producerLog.eof())
+		std::cout << "End of " PRODUCER_LOG_FILENAME << std::endl << std::endl;
+	    else
+		std::cerr << "An error occurred while attempting to read from " PRODUCER_LOG_FILENAME << std::endl << std::endl;
 	}
 	if(producerLog.is_open())
 	    producerLog.close();
     }
+    else{
+	std::cerr << PRODUCER_LOG_FILENAME " was not written to, so it will not be read." << std::endl << std::endl;
+    }
+
     if(cLogged){
 	std::ifstream consumerLog;
 	consumerLog.exceptions(std::ifstream::failbit);
-	std::cout << "Beginning of " CONSUMER_LOG_FILENAME << std::endl;
+	std::string buff;
 	try{
-	    std::string buff;
 	    consumerLog.open(CONSUMER_LOG_FILENAME);
+	    std::cout << "Reading from " CONSUMER_LOG_FILENAME ":" << std::endl;
 	    while(std::getline(consumerLog, buff))
 		std::cout << buff << std::endl;
 	}
 	catch(const std::ifstream::failure& e){
-	    std::cout << "End of " CONSUMER_LOG_FILENAME << std::endl;
+	    if(consumerLog.eof())
+		std::cout << "End of " CONSUMER_LOG_FILENAME << std::endl;
+	    else
+		std::cerr << "An error occurred while attempting to read from " CONSUMER_LOG_FILENAME << std::endl;
 	}
 	if(consumerLog.is_open())
 	    consumerLog.close();
+    }
+    else{
+	std::cerr << CONSUMER_LOG_FILENAME " was not written to, so it will not be read." << std::endl;
     }
     
     return EXIT_SUCCESS;

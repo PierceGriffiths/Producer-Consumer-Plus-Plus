@@ -16,11 +16,11 @@ namespace pcplusplus{
 
 	    size_t dequeue(long *const num);
 	    
-	    inline bool isEmpty() noexcept{
+	    inline bool isEmpty() const noexcept{
 		return current_size == 0;
 	    }
 	    
-	    inline bool isFull() noexcept{
+	    inline bool isFull() const noexcept{
 		return current_size == capacity;
 	    }
     };

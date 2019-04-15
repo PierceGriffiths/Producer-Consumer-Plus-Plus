@@ -3,9 +3,10 @@
 #include "thread_args.hpp"
 namespace pcplusplus{
 
-    void producer(thread_args *const args, const size_t target, size_t *const num_produced);
+    void producer(thread_args *const args, const size_t target);
 
-    void consumer(thread_args *const args, const size_t target, size_t *const num_consumed);
-}
+    void consumer(thread_args *const args, const size_t target);
 
-#endif
+} //end of namespace block
+
+#endif //ifndef THREADED_FUNCTIONS_HPP

@@ -12,4 +12,13 @@
 #endif//ifdef __SIZE_MAX__
 #endif//ifndef SIZE_MAX
 
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/syscall.h>
+#define GET_TID syscall(SYS_gettid)
+#else
+#include <thread>
+#define GET_TID std::this_thread::get_id()
+#endif
+
 #endif//ifndef MACRO_DEFS_HPP
