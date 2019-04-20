@@ -9,7 +9,7 @@ namespace pcplusplus{
     class thread_args{
 	protected:
 	    std::ofstream producerLog, consumerLog;
-	    pcplusplus::queue *buffer;
+	    pcplusplus::queue<long> *buffer;
 
 	public:
 	    thread_args(const size_t capacity);

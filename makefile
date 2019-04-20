@@ -19,7 +19,7 @@ endif #if compiling debug version
 _DEPS = macro_defs.hpp exceptions.hpp queue.hpp thread_args.hpp threaded_functions.hpp
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = queue.o thread_args.o producer.o consumer.o main.o
+_OBJ = thread_args.o producer.o consumer.o main.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)

@@ -7,7 +7,7 @@
 namespace pcplusplus{
     thread_args::thread_args(const size_t capacity){
 	try{
-	    buffer = new queue(capacity);
+	    buffer = new queue<long>(capacity);
 	}
 	catch(const exceptions::failed_init& e){
 	    throw e;
