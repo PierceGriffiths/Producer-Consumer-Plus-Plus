@@ -1,31 +1,31 @@
 #include <iostream>
-#include <thread>
 #include <chrono>
-#include "thread_args.hpp"
+#include "threaded_functions.hpp"
 namespace pcplusplus{
-    void producer(thread_args *const args, const size_t target){
+    void producer_threads::producer_thread(thread_args *args){
 	const auto thread_id = GET_TID;
-	args->lock();
+	lock();
 	std::cout << "Producer thread " << thread_id << " started." << std::endl;
-	args->unlock();
-	while(args->getNumProduced() < target){
+	unlock();
+	while(num_processed < target){
 	    std::this_thread::sleep_for(std::chrono::microseconds(5));//sleep for 5 microseconds so that other producer threads have an opportunity to acquire the mutex
-	    args->lock();
+	    lock();
 	    while(args->isFull()){
-		args->wait_for_consumers();
+		wait();
 	    }
-	    if(args->getNumProduced() == target){
+	    if(num_processed == target){
 		std::cout << "Producer thread " << thread_id << " finished." << std::endl;
-		args->unlock();
+		unlock();
 		return;
 	    }
 
 	    args->produce_item(thread_id);
-	    args->unlock();
-	    args->notify_consumers();
+	    ++num_processed;
+	    unlock();
+	    notify();
 	}
-	args->lock();
+	lock();
 	std::cout << "Producer thread " << thread_id << " finished." << std::endl;
-	args->unlock();
+	unlock();
     }
 }

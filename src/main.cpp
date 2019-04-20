@@ -60,164 +60,37 @@ int main(const int argc, const char *argv[]){
     if(tArgs == nullptr)
 	return EXIT_FAILURE;
     
-    std::unique_ptr<std::thread[]> producers;
+    std::mutex mutex;
+    std::condition_variable canProduce, canConsume;
+    pcplusplus::generic_threads *producers, *consumers;
     try{
-	producers = std::make_unique<std::thread[]>(numProducers);
+	producers = new pcplusplus::producer_threads(target, numProducers, &mutex, &canProduce, &canConsume);
     }
     catch(const std::bad_alloc& e){
-	delete tArgs;
 	std::cerr << "Could not allocate memory for producer threads." << std::endl;
 	return EXIT_FAILURE;
     }
-    std::unique_ptr<std::thread[]> consumers;
+
     try{
-	consumers = std::make_unique<std::thread[]>(numConsumers);
+	consumers = new pcplusplus::consumer_threads(target, numProducers, &mutex, &canConsume, &canProduce);
     }
     catch(const std::bad_alloc& e){
-	producers.reset();
-	delete tArgs;
 	std::cerr << "Could not allocate memory for consumer threads." << std::endl;
 	return EXIT_FAILURE;
     }
-    
+
     tArgs->openLogFiles();
     
-    if(numProducers >= numConsumers){
-	size_t i = 0;
-	for(; i < numConsumers; ++i){
-	    try{
-		producers[i] = std::thread(pcplusplus::producer, tArgs, target);
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Failed to fork a producer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	    
-	    try{
-		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target);
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Failed to fork a consumer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	}
-	
-	for(;i < numProducers; ++i){//if numProducers == numConsumers, this loop will be skipped
-	    try{
-		producers[i] = std::thread(pcplusplus::producer, tArgs, target);
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Failed to fork a producer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	}
-	
-	for(i = 0; i < numConsumers; ++i){
-	    try{
-		producers[i].join();
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Error occured while attempting to join a producer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	    
-	    try{
-		consumers[i].join();
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Error occured while attempting to join a consumer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	}
-	consumers.reset();
-	for(;i < numProducers; ++i){
-	    try{
-		producers[i].join();
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Error occured while attempting to join a producer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	}
-	
-	producers.reset();
-    }//end of if(numProducers >= numConsumers)
-    else{
-	size_t i = 0;
-	for(; i < numProducers; ++i){
-	    try{
-		producers[i] = std::thread(pcplusplus::producer, tArgs, target);
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Failed to fork a producer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
+    producers->fork(tArgs);
+    consumers->fork(tArgs);
 
-	    try{
-		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target);
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Failed to fork a consumer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	}
-	
-	for(;i < numConsumers; ++i){
-	    try{
-		consumers[i] = std::thread(pcplusplus::consumer, tArgs, target);
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Failed to fork a consumer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	}
-	
-	for(i = 0; i < numProducers; ++i){
-	    try{
-		producers[i].join();
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Error occured while attempting to join a producer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-
-	    try{
-		consumers[i].join();
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Error occured while attempting to join a consumer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	}
-	
-	producers.reset();
-	
-	for(;i < numConsumers; ++i){
-	    try{
-		consumers[i].join();
-	    }
-	    catch(const std::system_error& e){
-		tArgs->lock();
-		std::cerr << "Error occured while attempting to join a consumer thread." << std::endl;
-		return EXIT_FAILURE;
-	    }
-	}
-	consumers.reset();
-    }//end of else
+    const size_t num_produced = producers->join();
+    delete producers;
     
+    const size_t num_consumed = consumers->join();
+    delete consumers;
+
     const bool pLogged = tArgs->producerLog_is_open(), cLogged = tArgs->consumerLog_is_open();
-    const size_t num_produced = tArgs->getNumProduced(), num_consumed = tArgs->getNumConsumed();
     delete tArgs;
     std::cout << "All threads finished." << std::endl;
     std::cout << "Produced: " << num_produced << std::endl << "Consumed: " << num_consumed << std::endl << std::endl;

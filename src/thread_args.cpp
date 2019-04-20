@@ -16,8 +16,6 @@ namespace pcplusplus{
 	    e.~bad_alloc();
 	    throw exceptions::failed_init("Failed to initialize queue instance");
 	}
-	num_produced = 0;
-	num_consumed = 0;
 	srand48(std::time(nullptr));
     }
 
@@ -46,18 +44,6 @@ namespace pcplusplus{
 	}
     }
 
-    void thread_args::wait_for_consumers(){
-	ulock_t mtx(this->mutex, std::adopt_lock);//adopt_lock assumes that the current thread already has ownership of the mutex
-	canProduce.wait(mtx);
-	mtx.release();//Removes association between local unique_lock and the underlying mutex without unlocking. After function returns to call site, the thread will still own the mutex
-    }
-
-    void thread_args::wait_for_producers(){
-	ulock_t mtx(this->mutex, std::adopt_lock);
-	canConsume.wait(mtx);
-	mtx.release();
-    }
-
     void thread_args::produce_item(const tid_t thread_id){
 	const long num = lrand48();
 	const size_t index = this->buffer->enqueue(num);
@@ -68,7 +54,6 @@ namespace pcplusplus{
 		" Producer " << thread_id << " " << index << " " << num << std::endl;
 
 	std::cout << "Producer thread " << thread_id << " produced " << num << " and stored it at index " << index << std::endl;
-	++num_produced;
     }
 
     void thread_args::consume_item(const tid_t thread_id){
@@ -81,6 +66,5 @@ namespace pcplusplus{
 		" Consumer " << thread_id << " " << index << " " << num << std::endl;
 
 	std::cout << "Consumer thread " << thread_id << " consumed " << num << " from index " << index << std::endl;
-	++num_consumed;
     }
 }
