@@ -14,11 +14,12 @@ else ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),debug pc-plus-plus-debug))
     ODIR := $(ODIR)/debug
 endif #if compiling debug version
 
+DEPS := $(wildcard $(IDIR)/*.hpp)
 
 _OBJ := $(patsubst %.cpp, %.o, $(notdir $(wildcard $(SDIR)/*.cpp)))
 OBJ := $(patsubst %, $(ODIR)/%, $(_OBJ))
 
-$(ODIR)/%.o: $(SDIR)/%.cpp
+$(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	@if [ ! -d "$(ODIR)" ]; then	\
 	    mkdir -p $(ODIR);           \
 	fi;                             #create appropriate object directory if it doesn't exist
