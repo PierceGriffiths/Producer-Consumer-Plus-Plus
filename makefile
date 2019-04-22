@@ -1,28 +1,24 @@
-CXX=g++
-CXXFLAGS= -march='native' -std=c++14 -pedantic -I$(IDIR) -Wall
-SDIR=./src
-IDIR=$(SDIR)/include
-ODIR=$(SDIR)/obj
+CXX := g++
+SDIR := ./src
+IDIR := $(SDIR)/include
+CXXFLAGS := -march='native' -std=c++14 -pedantic -I$(IDIR) -Wall
+ODIR := $(SDIR)/obj
 ifneq ($(OS),Windows_NT)
     LDLIBS=-pthread
 endif #if not compiling for Windows
 
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),release pc-plus-plus))
-    CXXFLAGS += -O3
+    CXXFLAGS := $(CXXFLAGS) -O3
 else ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),debug pc-plus-plus-debug))
-    CXXFLAGS += -Og -g -pg
-    ODIR=$(SDIR)/obj/debug
+    CXXFLAGS := $(CXXFLAGS) -Og -g -pg
+    ODIR := $(ODIR)/debug
 endif #if compiling debug version
 
 
-
-_DEPS = macro_defs.hpp exceptions.hpp queue.hpp thread_args.hpp threaded_functions.hpp
-DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
-
-_OBJ = thread_args.o producer.o consumer.o main.o
+_OBJ := $(patsubst %.cpp, %.o,$(notdir $(wildcard $(SDIR)/*.cpp)))
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-$(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
+$(ODIR)/%.o: $(SDIR)/%.cpp
 	@if [ ! -d "$(ODIR)" ]; then	\
 	    mkdir -p $(ODIR);           \
 	fi;                             #create appropriate object directory if it doesn't exist
