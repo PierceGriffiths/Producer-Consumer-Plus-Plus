@@ -4,7 +4,7 @@ IDIR := $(SDIR)/include
 CXXFLAGS := -march='native' -std=c++14 -pedantic -I$(IDIR) -Wall
 ODIR := $(SDIR)/obj
 ifneq ($(OS),Windows_NT)
-    LDLIBS=-pthread
+    LDLIBS := -pthread
 endif #if not compiling for Windows
 
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),release pc-plus-plus))
@@ -15,8 +15,8 @@ else ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),debug pc-plus-plus-debug))
 endif #if compiling debug version
 
 
-_OBJ := $(patsubst %.cpp, %.o,$(notdir $(wildcard $(SDIR)/*.cpp)))
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+_OBJ := $(patsubst %.cpp, %.o, $(notdir $(wildcard $(SDIR)/*.cpp)))
+OBJ := $(patsubst %, $(ODIR)/%, $(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.cpp
 	@if [ ! -d "$(ODIR)" ]; then	\
@@ -37,7 +37,7 @@ pc-plus-plus-debug: $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 cleanobj:
-	rm -f $(ODIR)/*.o $(ODIR)/debug/*.o *~ core $(INCDIR)/*~
+	rm -f $(ODIR)/*.o $(ODIR)/debug/*.o *~ core $(IDIR)/*~
 
 cleanall: cleanobj
 	rm -f pc-plus-plus pc-plus-plus-debug
