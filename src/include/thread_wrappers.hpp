@@ -1,5 +1,5 @@
-#ifndef THREADED_FUNCTIONS_HPP
-#define THREADED_FUNCTIONS_HPP
+#ifndef THREAD_WRAPPERS_HPP
+#define THREAD_WRAPPERS_HPP
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -36,7 +36,7 @@ namespace pcplusplus{
 		signalCV->notify_all();
 	    }
 
-	    virtual void thread_routine(thread_args *tArgs){};
+	    virtual void thread_routine(thread_args *args){};
 	public:
 	    generic_threads(size_t target, size_t count, std::mutex *mtx, C_V *wait, C_V *sig) : waitCV(wait), signalCV(sig), num_threads(count), target(target){
 		threads = std::make_unique<std::thread[]>(num_threads);
@@ -48,10 +48,10 @@ namespace pcplusplus{
 		threads.reset();
 	    }
 
-	    virtual void fork(thread_args *tArgs){
+	    virtual void fork(thread_args *args){
 		lock();
 		for(size_t i = 0; i < num_threads; ++i)
-		    threads[i] = std::thread(&generic_threads::thread_routine, this, tArgs);
+		    threads[i] = std::thread(&generic_threads::thread_routine, this, args);
 		unlock();
 	    }
 
@@ -60,24 +60,20 @@ namespace pcplusplus{
 		    threads[i].join();
 		return num_processed;
 	    }
-    };
+    };//end of class generic_threads
 
     class producer_threads : public pcplusplus::generic_threads{
-	private:
-	    void producer_thread(thread_args *args);
 	protected:
-	    virtual void thread_routine(thread_args *tArgs){
-		producer_thread(tArgs);
-	    }
+	    void thread_routine(thread_args *args);
 	public:
 	    producer_threads(size_t target, size_t count, std::mutex *mtx, C_V *canPro, C_V *canCon) : generic_threads(target, count, mtx, canPro, canCon){
 	    }
 	    
 	    virtual ~producer_threads(){};
 
-	    void fork(thread_args *tArgs){
+	    void fork(thread_args *args){
 		try{
-		    generic_threads::fork(tArgs);
+		    generic_threads::fork(args);
 		}
 		catch(const std::system_error& e){
 		    std::cerr << "Failed to fork a producer thread." << std::endl;
@@ -95,24 +91,20 @@ namespace pcplusplus{
 		    std::exit(EXIT_FAILURE);
 		}
 	    }
-    };
+    };//end of class producer_threads
 
     class consumer_threads : public pcplusplus::generic_threads{
-	private:
-	    void consumer_thread(thread_args *args);
 	protected:
-	    virtual void thread_routine(thread_args *tArgs){
-		consumer_thread(tArgs);
-	    }
+	    virtual void thread_routine(thread_args *args);
 	public:
 	    consumer_threads(size_t target, size_t count, std::mutex *mtx, C_V *canCon, C_V *canPro) : generic_threads(target, count, mtx, canCon, canPro){
 	    }
 
 	    virtual ~consumer_threads(){};
 
-	    void fork(thread_args *tArgs){
+	    void fork(thread_args *args){
 		try{
-		    generic_threads::fork(tArgs);
+		    generic_threads::fork(args);
 		}
 		catch(const std::system_error& e){
 		    std::cerr << "Failed to fork a consumer thread." << std::endl;
@@ -130,8 +122,8 @@ namespace pcplusplus{
 		    std::exit(EXIT_FAILURE);
 		}
 	    }
-    };
+    };//end of class consumer_threads
 
 } //end of namespace block
 
-#endif //ifndef THREADED_FUNCTIONS_HPP
+#endif //ifndef THREAD_WRAPPERS_HPP

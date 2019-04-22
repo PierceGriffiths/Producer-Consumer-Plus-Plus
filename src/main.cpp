@@ -4,7 +4,7 @@
 #include <cerrno>
 #include <cinttypes>
 #include "macro_defs.hpp"
-#include "threaded_functions.hpp"
+#include "thread_wrappers.hpp"
 #include "exceptions.hpp"
 
 pcplusplus::thread_args* checkArguments(const char *argv[], size_t *target, size_t *numProducers, size_t *numConsumers){

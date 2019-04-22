@@ -1,8 +1,8 @@
 #include <iostream>
 #include <chrono>
-#include "threaded_functions.hpp"
+#include "thread_wrappers.hpp"
 namespace pcplusplus{
-    void producer_threads::producer_thread(thread_args *args){
+    void producer_threads::thread_routine(thread_args *args){
 	const auto thread_id = GET_TID;
 	lock();
 	std::cout << "Producer thread " << thread_id << " started." << std::endl;
