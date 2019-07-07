@@ -6,7 +6,11 @@ ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-march='native' -Wall -pedantic")
+IF(MSVC)
+    add_compile_options("/Wall" "/O2")
+ELSE()
+    add_compile_options("-march=native" "-O3" "-Wall" "-pedantic")
+ENDIF()
 
 add_executable(pc-plus-plus src/main.cpp src/producer.cpp src/consumer.cpp src/thread_manager.cpp)
 find_package(Threads REQUIRED)
