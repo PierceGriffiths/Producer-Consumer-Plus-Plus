@@ -1,27 +1,20 @@
 #include <iostream>
-#include <thread>
-#include <memory>
+#include <fstream>
 #include <cerrno>
 #include <cinttypes>
 #include "macro_defs.hpp"
-#include "thread_wrappers.hpp"
-#include "exceptions.hpp"
+#include "thread_manager.hpp"
 
-pcplusplus::thread_args* checkArguments(const char *argv[], size_t *target, size_t *numProducers, size_t *numConsumers){
-    pcplusplus::thread_args *tArgs = nullptr;
-    size_t argCheck;
+void checkArguments(const char *argv[], std::size_t *numProducers, std::size_t *numConsumers, std::size_t *buffer_capacity, std::size_t *target){
+    std::size_t argCheck;
     unsigned char i = 1;
     for(; i < 5; ++i){//Ensure all provided arguments are valid
 	if(argv[i][0] == '-')
-	    goto invalidargv;
+	    break;
 	errno = 0;
 	argCheck = std::strtoumax(argv[i], NULL, 10);
-	if(errno == ERANGE || argCheck == 0){
-invalidargv:
-	    std::cerr << "argument " << i << " (\'" << argv[i] << "\') not valid. Please provide a positive integer no greater than " << SIZE_MAX << std::endl;
-	    std::cerr << "Usage: " << argv[0] << " <# producer threads> <# consumer threads> <buffer size> <# items to produce>" << std::endl;
+	if(errno == ERANGE || argCheck == 0)
 	    break;
-        }
         switch(i){
             case 1:
                 *numProducers = argCheck;
@@ -30,24 +23,15 @@ invalidargv:
                 *numConsumers = argCheck;
                 continue;
             case 3:
-		try{
-		    tArgs = new pcplusplus::thread_args(argCheck);
-		}
-		catch(const pcplusplus::exceptions::failed_init& e){
-		    std::cerr << e.what() << std::endl;
-		    return nullptr;
-		}
-		catch(const std::bad_alloc& e){
-		    std::cerr << "Failed to initialize thread arguments" << std::endl;
-		    return nullptr;
-		}
+		*buffer_capacity = argCheck;
                 continue;
             case 4:
 		*target = argCheck;
-		return tArgs;
+		return;
         }
     }
-    return nullptr;
+    std::cerr << "argument " << i << " (\'" << argv[i] << "\') not valid. Please provide a positive integer no greater than " << SIZE_MAX << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <# producer threads> <# consumer threads> <buffer size> <# items to produce>" << std::endl;
 }
 
 int main(const int argc, const char *argv[]){
@@ -55,47 +39,13 @@ int main(const int argc, const char *argv[]){
 	std::cerr << "Usage: " << argv[0] << " <# producer threads> <# consumer threads> <buffer size> <# items to produce>" << std::endl;
 	return EXIT_FAILURE;
     }
-    size_t target = 0, numProducers = 0, numConsumers = 0;
-    pcplusplus::thread_args *tArgs = checkArguments(argv, &target, &numProducers, &numConsumers);
-    if(tArgs == nullptr)
-	return EXIT_FAILURE;
+    std::size_t numProducers, numConsumers, buffer_capacity, target;
+    checkArguments(argv, &numProducers, &numConsumers, &buffer_capacity, &target);
     
-    std::mutex mutex;
-    std::condition_variable canProduce, canConsume;
-    pcplusplus::generic_threads *producers, *consumers;
-    try{
-	producers = new pcplusplus::producer_threads(target, numProducers, &mutex, &canProduce, &canConsume);
-    }
-    catch(const std::bad_alloc& e){
-	std::cerr << "Could not allocate memory for producer threads." << std::endl;
-	return EXIT_FAILURE;
-    }
+    pcplusplus::thread_manager threads;
+    threads.run_threads(numProducers, numConsumers, buffer_capacity, target);
 
-    try{
-	consumers = new pcplusplus::consumer_threads(target, numProducers, &mutex, &canConsume, &canProduce);
-    }
-    catch(const std::bad_alloc& e){
-	std::cerr << "Could not allocate memory for consumer threads." << std::endl;
-	return EXIT_FAILURE;
-    }
-
-    tArgs->openLogFiles();
-    
-    producers->fork(tArgs);
-    consumers->fork(tArgs);
-
-    const size_t num_produced = producers->join();
-    delete producers;
-    
-    const size_t num_consumed = consumers->join();
-    delete consumers;
-
-    const bool pLogged = tArgs->producerLog_is_open(), cLogged = tArgs->consumerLog_is_open();
-    delete tArgs;
-    std::cout << "All threads finished." << std::endl;
-    std::cout << "Produced: " << num_produced << std::endl << "Consumed: " << num_consumed << std::endl << std::endl;
-    
-    if(pLogged){
+    if(threads.producer_log_was_written()){
 	std::ifstream producerLog;
 	producerLog.exceptions(std::ifstream::failbit);
 	std::string buff;
@@ -118,7 +68,7 @@ int main(const int argc, const char *argv[]){
 	std::cerr << PRODUCER_LOG_FILENAME " was not written to, so it will not be read." << std::endl << std::endl;
     }
 
-    if(cLogged){
+    if(threads.consumer_log_was_written()){
 	std::ifstream consumerLog;
 	consumerLog.exceptions(std::ifstream::failbit);
 	std::string buff;

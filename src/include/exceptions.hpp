@@ -1,31 +1,24 @@
 #ifndef PC_PLUS_PLUS_EXCEPTIONS_HPP
 #define PC_PLUS_PLUS_EXCEPTIONS_HPP
 #include <stdexcept>
-namespace pcplusplus{
-    namespace exceptions{
-	class failed_init : public std::bad_alloc{//thrown within the thread_args and queue constructors when an std::bad_alloc is caught in order to better describe the failure point
-	    protected:
-		const char* msg;
-	    public:
-		failed_init(const char* msg) : std::bad_alloc(), msg(msg){
-		}
+namespace pcplusplus::exceptions{
+    class failed_init : public std::runtime_error{//thrown within the thread_args and queue constructors when an std::bad_alloc is caught in order to better describe the failure point
+	public:
+	    explicit failed_init(const char* what_arg) : std::runtime_error(what_arg){
+	    }
 
-		const char* what() const noexcept{
-		    return msg;
-		}
-	};//end of class failed_init
+	    explicit failed_init(const std::string& what_arg) : std::runtime_error(what_arg){
+	    }
+    };//end of class failed_init
 
-	class enqueue_full : public std::logic_error{
-	    public:
-		enqueue_full() : std::logic_error("Called \"size_t Queue::enqueue(const long num)\" on a full Queue"){
-		}
-	};//end of class enqueue_full
+    class thread_failure : public std::runtime_error{//thrown when forking or joining a thread fails
+	public:
+	    explicit thread_failure(const char* what_arg) : std::runtime_error(what_arg){
+	    }
 
-	class dequeue_empty : public std::logic_error{
-	    public:
-		dequeue_empty() : std::logic_error("Called \"size_t Queue::dequeue(long const* num)\" on an empty Queue"){
-		}
-	};//end of class dequeue_empty
-    }//end of namespace exceptions block
-}//end of namespace pcplusplus block
+	    explicit thread_failure(const std::string& what_arg) : std::runtime_error(what_arg){
+	    }
+    };
+
+}//end of namespace block
 #endif
