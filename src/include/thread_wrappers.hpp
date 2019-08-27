@@ -56,7 +56,7 @@ namespace pcplusplus::threads{
 	    virtual ~generic_threads(){
 		if(logfile.is_open())
 		    logfile.close();
-		threads.reset();
+		threads.reset(nullptr);
 	    }
 
 	    virtual inline void fork(){

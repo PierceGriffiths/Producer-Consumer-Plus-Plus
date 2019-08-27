@@ -16,7 +16,7 @@ namespace pcplusplus{
 	    }
 
 	    ~queue(){
-		array.reset();
+		array.reset(nullptr);
 	    }
 
 	    inline size_t enqueue(const T num) noexcept{
