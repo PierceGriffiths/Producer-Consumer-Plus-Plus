@@ -4,13 +4,13 @@ C++ version of [Producer-Consumer](https://github.com/PierceGriffiths/Producer-C
 As of 25 September 2019, [Producer-Consumer](https://github.com/PierceGriffiths/Producer-Consumer/) has switched from pthreads to C11 threads, making Producer-Consumer++ redundant. This project will receive little to no maintenance from this point forwards, because I've learned to hate C++ and OOP in general while working on it.
 
 ## What's the same
+* Portability
 * Argument ordering and (theoretical) maximum width
 * Control flow
 * Output format
 * Log file format
 
 ## What's different - the good
-* Producer-Consumer++ is intended to work on all common platforms, and uses the standard C++ thread library
 * All structs from the original project have been rewritten as classes
 * Producers and consumers have had their critical sections moved to dedicated functions in order to provide abstraction of their implementation details
 * Underlying classes are highly reusable with little to no modification
