@@ -1,6 +1,7 @@
 Producer-Consumer++
 ======
 C++ version of [Producer-Consumer](https://github.com/PierceGriffiths/Producer-Consumer/).
+As of 25 September 2019, [Producer-Consumer](https://github.com/PierceGriffiths/Producer-Consumer/) has switched from pthreads to C11 threads, making Producer-Consumer++ redundant. This project will receive little to no maintenance from this point forwards, because I've learned to hate C++ and OOP in general while working on it.
 
 ## What's the same
 * Argument ordering and (theoretical) maximum width
